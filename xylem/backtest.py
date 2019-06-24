@@ -1,6 +1,7 @@
 import yaml
 import os
 import random
+import time
 from six import exec_
 from .Utils.Fetcher import Fetcher
 from .Utils.Result import Result
@@ -112,6 +113,7 @@ class ExecuteTest:
         self.__result_set = []
 
     def execute(self):
+        # TODO Add support for multiple attempts
         for symb in self.__test_config["tickers"]:
             context = self.__context
 
@@ -156,6 +158,7 @@ class ExecuteTest:
         e = self.__test_config["date_range_end"]
 
         # TODO Regardless of config it always selects randomly
+        # TODO Add support for durations longer than a month
         rand_s, rand_e = self.__random_date(s, e, random.random())
         
         return f.fetch_barset(ticker=symb, timespan='minute', start=rand_s, stop=rand_e)
