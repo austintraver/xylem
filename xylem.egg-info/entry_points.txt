@@ -1,0 +1,3 @@
+[console_scripts]
+xylem = xylem.__main__:run
+
