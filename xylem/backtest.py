@@ -1,5 +1,6 @@
 import yaml
 import os
+import random
 from six import exec_
 from .Utils.Fetcher import Fetcher
 from .Utils.Result import Result
@@ -153,8 +154,24 @@ class ExecuteTest:
         f  = Fetcher()
         s = self.__test_config["date_range_start"]
         e = self.__test_config["date_range_end"]
+
+        # TODO Regardless of config it always selects randomly
+        rand_s, rand_e = self.__random_date(s, e, random.random())
         
-        return f.fetch_barset(ticker=symb, timespan='minute', start=s, stop=e)
+        return f.fetch_barset(ticker=symb, timespan='minute', start=rand_s, stop=rand_e)
+
+    def __random_date(self, start, end, prop):
+        format_str = "%Y-%m-%d"
+        seconds_in_month = 2592000
+
+        stime = time.mktime(time.strptime(start, format_str))
+        etime = time.mktime(time.strptime(end, format_str))
+
+        sptime = stime + prop * (etime - stime)
+        eptime = sptime + seconds_in_month
+
+        return time.strftime(format_str, time.localtime(sptime)), time.strftime(format_str, time.localtime(eptime))
+
 
     def save_result_set(self, output, file_name):
         if not output.strip().endswith("/"):
