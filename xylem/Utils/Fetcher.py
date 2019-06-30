@@ -10,5 +10,4 @@ class Fetcher:
     def fetch_barset(self, ticker, timespan, start, stop):
         barset = self.__api.polygon.historic_agg_v2(timespan=timespan, multiplier='1', symbol=ticker, _from=start, to=stop).df
         barset.index = pd.to_datetime(barset.index, unit='ms', origin="unix")
-
         return barset

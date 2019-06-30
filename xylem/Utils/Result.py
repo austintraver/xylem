@@ -1,22 +1,27 @@
 import json
 
 class Result:
-    def __init__(self, ticker, buys, sells, starting_balance, ending_balance):
+    def __init__(self, ticker, buys, sells, orders, starting_balance, ending_balance):
         self.ticker = ticker
         self.buys = buys
         self.sells = sells
+        self.orders = orders
         self.starting_balance = starting_balance
         self.ending_balance = ending_balance
 
     def json(self):
         data = {}
         data['ticker'] = self.ticker
-        #data['buys'] = self.buys.to_json()
-        #data['sells'] = self.sells.to_json()
+        data['buys'] = self.buys
+        data['sells'] = self.sells
+        data['orders'] = self.orders
         data['starting_balance'] = self.starting_balance
         data['ending_balance'] = self.ending_balance
         
         return json.dumps(data)
+    
+    def __str__(self):
+        return self.json()
 
     def printResult(self):
         print("=======================================")

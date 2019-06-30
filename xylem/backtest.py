@@ -81,7 +81,8 @@ class TestAlgorithm:
         
         return {
             "compute": namespace.get("compute", nofunc),
-            "before_exit": namespace.get("before_exit", nofunc)
+            "before_exit": namespace.get("before_exit", nofunc),
+            "analyze": namespace.get("analyze", nofunc)
         }
 
     def __read_algo(self, algo):
@@ -103,11 +104,14 @@ class ExecuteTest:
         self.__stats = stats
         self.__algo = algo
         self.__equity = equity
+        self.__current_candle = None
+        self.__current_time = None
 
         # Test Data
         self.__wallet = equity
         self.__buys = []
         self.__sells = []
+        self.__orders = []
 
         # Result Set 
         self.__result_set = []
@@ -122,7 +126,7 @@ class ExecuteTest:
             f_stats = {}
             for index, row in stats.iterrows():
                 self.__current_candle = row
-
+                self.__current_time = index
                 for stat in self.__stats:
                     f_stats[stat] = row[stat]
 
@@ -132,7 +136,9 @@ class ExecuteTest:
             self.__algo["before_exit"](context, f_stats, self.order)
 
             # Save Result
-            r = Result(symb, self.__buys, self.__sells, self.__equity, self.__wallet)
+            r = Result(symb, self.__buys, self.__sells, self.__orders, 
+                       self.__equity, self.__wallet)
+
             self.__result_set.append(r)
             r.printResult()
 
@@ -140,6 +146,8 @@ class ExecuteTest:
             self.__wallet = self.__equity
             self.__buys = []
             self.__sells = []
+        # End of all symbol tests    
+        self.__algo["analyze"](self.__result_set)
 
     def __get_data_with_stats(self, symb):
         barset = self.__fetch_data(symb)
@@ -196,10 +204,18 @@ class ExecuteTest:
 
     def order(self, amount):
         self.__wallet += (amount * self.__current_candle["o"])
-
+        # If buy order
         if amount > 0:
-            self.__buys.append(self.__current_candle)
+            self.__buys.append(self.__current_candle.to_dict())
+
+        # If sell order
         elif amount < 0:
-            self.__sells.append(self.__current_candle)
+            self.__sells.append(self.__current_candle.to_dict())
         
-        
+        # Add to the list of total orders
+        # What was the number of securities
+        # What was the price of each security
+        # At what time was the current candle
+        order = self.__current_candle.to_dict()
+        order["t"] = str(self.__current_time)
+        self.__orders.append(order)
