@@ -1,33 +1,39 @@
-import yaml
 import os
 import random
 import time
+from yaml import safe_load as load
+from json import dump
 from six import exec_
-from .Utils.Fetcher import Fetcher
-from .Utils.Result import Result
+from ..tickers import get_stats, get_barset
 
-class TestAlgorithm:
+class Backtest:
     def __init__(self, algo):
-        
-        self.__config = {}
-        with open(algo, "r") as yml:
-            try:
-                self.__config = yaml.safe_load(yml)
-            except yaml.YAMLError as e:
-                print(e)
 
-        algo = self.__load_algorithm()
+        self.__algo = algo
+        self.__current_candle = None
+        self.__current_time = None
 
-        tests = self.__parse_tests()
+        # Test Data
+        self.__portfolio = 0 # Value of all stocks held
+        self.__buys = []
+        self.__sells = []
+        self.__orders = []
 
-        i = 1
-        for test in tests:
-            t = ExecuteTest(self.__config["equity"], test, self.__config["context"],
-                            self.__config["statistics"], algo)
-            t.execute()
-            t.save_result_set(self.__config["output"], "test_" + str(i) + ".json")
+        # Result Set 
+        self.__result_set = []
 
-            i += 1
+        self.__config = load(open(algo, "r"))
+
+        self.__equity = self.__config["equity"]
+        self.__context = self.__config["context"]
+        self.__stats = self.__config["statistics"]
+
+        test = self.__parse_tests()
+
+        for i in range(len(test)):
+            result = self.execute()
+            print(result)
+            dump(result, 'test_{0:d}.json'.format(str(i)))
 
 
     def __parse_tests(self):
@@ -97,29 +103,17 @@ class TestAlgorithm:
 
         return algo_str, algo_name
 
-class ExecuteTest:
-    def __init__(self, equity, test_config, context, stats, algo):
-        self.__test_config = test_config
-        self.__context = context
-        self.__stats = stats
-        self.__algo = algo
-        self.__equity = equity
-        self.__current_candle = None
-        self.__current_time = None
-
-        # Test Data
-        self.__wallet = equity
-        self.__buys = []
-        self.__sells = []
-        self.__orders = []
-
-        # Result Set 
-        self.__result_set = []
 
     def execute(self):
+
         # TODO Add support for multiple attempts
-        for symb in self.__test_config["tickers"]:
-            context = self.__context
+        for symb in self.__config["tickers"]:
+
+            buys = []
+            sells = []
+
+             # Reset for next symbol
+            self.__wallet = self.__equity
 
             stats = self.__get_data_with_stats(symb)
 
@@ -127,25 +121,29 @@ class ExecuteTest:
             for index, row in stats.iterrows():
                 self.__current_candle = row
                 self.__current_time = index
-                for stat in self.__stats:
+                for stat in stats:
                     f_stats[stat] = row[stat]
 
-                self.__algo["compute"](context, f_stats, self.order)
+                self.__algo["compute"](self.__context, f_stats, self.order)
 
             # Run Before Exit
-            self.__algo["before_exit"](context, f_stats, self.order)
+            self.__algo["before_exit"](self.__context, f_stats, self.order)
 
             # Save Result
-            r = Result(symb, self.__buys, self.__sells, self.__orders, 
-                       self.__equity, self.__wallet)
+            result = {
+                "ticker": symb,
+                "buys": buys,
+                "sells": sells, 
+                "orders": self.__orders, 
+                "wallet": self.__wallet,
+                "portfolio": self.__equity,
+            }
 
-            self.__result_set.append(r)
-            r.printResult()
+            self.__result_set.append(result)
 
-            # Reset for next symbol
-            self.__wallet = self.__equity
-            self.__buys = []
-            self.__sells = []
+            return(get_stats(result))
+
+
         # End of all symbol tests    
         self.__algo["analyze"](self.__result_set)
 
@@ -161,15 +159,14 @@ class ExecuteTest:
         return barset
 
     def __fetch_data(self, symb):
-        f  = Fetcher()
-        s = self.__test_config["date_range_start"]
-        e = self.__test_config["date_range_end"]
+        s = self.__config["date_range_start"]
+        e = self.__config["date_range_end"]
 
         # TODO Regardless of config it always selects randomly
         # TODO Add support for durations longer than a month
         rand_s, rand_e = self.__random_date(s, e, random.random())
         
-        return f.fetch_barset(ticker=symb, timespan='minute', start=rand_s, stop=rand_e)
+        return get_barset(ticker=symb, timespan='minute', start=rand_s, stop=rand_e)
 
     def __random_date(self, start, end, prop):
         format_str = "%Y-%m-%d"
@@ -184,38 +181,38 @@ class ExecuteTest:
         return time.strftime(format_str, time.localtime(sptime)), time.strftime(format_str, time.localtime(eptime))
 
 
-    def save_result_set(self, output, file_name):
-        if not output.strip().endswith("/"):
-            output += ("/")
-        
-        if not os.path.exists(output):
-            os.makedirs(output)
-        
-        with open(output + file_name, 'w') as f:
-            json_str = "["
-            for res in self.__result_set:
-                json_str += res.json()
-                json_str += ","
+    def order(self, order_size=0, *, all_in=False, liquidate=False):
+
+        current_price = self.__current_candle["o"]
+
+        if all_in:
+            # Ensure that the order_size for all_in() is +/- 1
+            if order_size in [-1, 1]:
+                # Calculate max # of stocks we can long/short @ current price...
+                order_size *= self.__wallet // current_price
+                
+            else:
+                raise ValueError("Order is all_in but != +/- 1")
             
-            json_str = json_str[:-1]
-            json_str += "]"
-
-            f.write(json_str)
-
-    def order(self, amount):
-        self.__wallet += (amount * self.__current_candle["o"])
-        # If buy order
-        if amount > 0:
-            self.__buys.append(self.__current_candle.to_dict())
-
-        # If sell order
-        elif amount < 0:
-            self.__sells.append(self.__current_candle.to_dict())
+        elif liquidate:
+            # Order size should be the opposite of our current position
+            order_size = self.__portfolio * -1
+        
+        # Catch an invalid set of arguments passed to order()
+        elif order_size == 0:
+            raise ValueError("Order placed for 0 stocks")
+            
+        # Subtract the cost of this order from the wallet
+        self.__wallet -= (order_size * current_price)
+        
+        # Adjust balance +/- amount of stocks owned
+        self.__portfolio += order_size
         
         # Add to the list of total orders
-        # What was the number of securities
-        # What was the price of each security
-        # At what time was the current candle
-        order = self.__current_candle.to_dict()
-        order["t"] = str(self.__current_time)
+        order = {
+            "time": str(self.__current_time),
+            "amount": order_size,
+            "price": current_price
+        }
+        
         self.__orders.append(order)
