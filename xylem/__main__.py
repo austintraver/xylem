@@ -13,11 +13,11 @@ Options:
 
 """
 from docopt import docopt
-from .backtest import Backtest
+from .backtest import TestAlgorithm
 
 def run(args):
     """ Main routine. """
-    Backtest(args['--algorithm'])
+    TestAlgorithm(args['--algorithm'])
 
 def main():
     args = docopt(__doc__, version='Xylem Version 0.0.1')

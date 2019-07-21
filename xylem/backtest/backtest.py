@@ -1,39 +1,33 @@
 import os
 import random
 import time
-import yaml
-import json
 from six import exec_
-from ..tickers import *
+from ..Utils.Fetcher import Fetcher
+from ..Utils.Result import Result
+import yaml
 
-class Backtest:
+class TestAlgorithm:
     def __init__(self, algo):
+        
+        self.__config = {}
+        with open(algo, "r") as yml:
+            try:
+                self.__config = yaml.safe_load(yml)
+            except yaml.YAMLError as error:
+                print(error)
 
-        self.__algo = algo
-        self.__current_candle = None
-        self.__current_time = None
+        algo = self.__load_algorithm()
 
-        # Test Data
-        self.__portfolio = 0 # Value of all stocks held
-        self.__buys = []
-        self.__sells = []
-        self.__orders = []
+        tests = self.__parse_tests()
 
-        # Result Set 
-        self.__result_set = []
+        i = 1
+        for test in tests:
+            t = ExecuteTest(self.__config["equity"], test, self.__config["context"],
+                            self.__config["statistics"], algo)
+            t.execute()
+            t.save_result_set(self.__config["output"], "test_" + str(i) + ".json")
 
-        self.__config = yaml.load(open(algo, "r"))
-
-        self.__equity = self.__config["equity"]
-        self.__context = self.__config["context"]
-        self.__stats = self.__config["statistics"]
-
-        test = self.__parse_tests()
-
-        for i in range(len(test)):
-            result = self.execute(test[i])
-            print(result)
-            json.dump(result, 'test_{0:d}.yml'.format(str(i)))
+            i += 1
 
 
     def __parse_tests(self):
@@ -50,8 +44,7 @@ class Backtest:
                 tickers = tickers.strip().split(",")
                 single_test["tickers"] = tickers
             elif tickers == "*":
-              # Pull the S&P 500 stock tickers
-                single_test["tickers"] = gspc
+                single_test["tickers"] = ['MMM', 'ABT', 'ABBV', 'ACN', 'ATVI', 'AYI', 'ADBE', 'AMD', 'AAP', 'AES', 'AET', 'AMG', 'AFL', 'A', 'APD', 'AKAM', 'ALK', 'ALB', 'ARE', 'ALXN', 'ALGN', 'ALLE', 'AGN', 'ADS', 'LNT', 'ALL', 'GOOGL', 'GOOG', 'MO', 'AMZN', 'AEE', 'AAL', 'AEP', 'AXP', 'AIG', 'AMT', 'AWK', 'AMP', 'ABC', 'AME', 'AMGN', 'APH', 'APC', 'ADI', 'ANDV', 'ANSS', 'ANTM', 'AON', 'AOS', 'APA', 'AIV', 'AAPL', 'AMAT', 'APTV', 'ADM', 'ARNC', 'AJG', 'AIZ', 'T', 'ADSK', 'ADP', 'AZO', 'AVB', 'AVY', 'BHGE', 'BLL', 'BAC', 'BK', 'BAX', 'BBT', 'BDX', 'BRK.B', 'BBY', 'BIIB', 'BLK', 'HRB', 'BA', 'BKNG', 'BWA', 'BXP', 'BSX', 'BHF', 'BMY', 'AVGO', 'BF.B', 'CHRW', 'CA', 'COG', 'CDNS', 'CPB', 'COF', 'CAH', 'KMX', 'CCL', 'CAT', 'CBOE', 'CBRE', 'CBS', 'CELG', 'CNC', 'CNP', 'CTL', 'CERN', 'CF', 'SCHW', 'CHTR', 'CVX', 'CMG', 'CB', 'CHD', 'CI', 'XEC', 'CINF', 'CTAS', 'CSCO', 'C', 'CFG', 'CTXS', 'CLX', 'CME', 'CMS', 'KO', 'CTSH', 'CL', 'CMCSA', 'CMA', 'CAG', 'CXO', 'COP', 'ED', 'STZ', 'COO', 'GLW', 'COST', 'COTY', 'CCI', 'CSX', 'CMI', 'CVS', 'DHI', 'DHR', 'DRI', 'DVA', 'DE', 'DAL', 'XRAY', 'DVN', 'DLR', 'DFS', 'DISCA', 'DISCK', 'DISH', 'DG', 'DLTR', 'D', 'DOV', 'DWDP', 'DPS', 'DTE', 'DRE', 'DUK', 'DXC', 'ETFC', 'EMN', 'ETN', 'EBAY', 'ECL', 'EIX', 'EW', 'EA', 'EMR', 'ETR', 'EVHC', 'EOG', 'EQT', 'EFX', 'EQIX', 'EQR', 'ESS', 'EL', 'ES', 'RE', 'EXC', 'EXPE', 'EXPD', 'ESRX', 'EXR', 'XOM', 'FFIV', 'FB', 'FAST', 'FRT', 'FDX', 'FIS', 'FITB', 'FE', 'FISV', 'FLIR', 'FLS', 'FLR', 'FMC', 'FL', 'F', 'FTV', 'FBHS', 'BEN', 'FCX', 'GPS', 'GRMN', 'IT', 'GD', 'GE', 'GGP', 'GIS', 'GM', 'GPC', 'GILD', 'GPN', 'GS', 'GT', 'GWW', 'HAL', 'HBI', 'HOG', 'HRS', 'HIG', 'HAS', 'HCA', 'HCP', 'HP', 'HSIC', 'HSY', 'HES', 'HPE', 'HLT', 'HOLX', 'HD', 'HON', 'HRL', 'HST', 'HPQ', 'HUM', 'HBAN', 'HII', 'IDXX', 'INFO', 'ITW', 'ILMN', 'IR', 'INTC', 'ICE', 'IBM', 'INCY', 'IP', 'IPG', 'IFF', 'INTU', 'ISRG', 'IVZ', 'IPGP', 'IQV', 'IRM', 'JEC', 'JBHT', 'SJM', 'JNJ', 'JCI', 'JPM', 'JNPR', 'KSU', 'K', 'KEY', 'KMB', 'KIM', 'KMI', 'KLAC', 'KSS', 'KHC', 'KR', 'LB', 'LLL', 'LH', 'LRCX', 'LEG', 'LEN', 'LUK', 'LLY', 'LNC', 'LKQ', 'LMT', 'L', 'LOW', 'LYB', 'MTB', 'MAC', 'M', 'MRO', 'MPC', 'MAR', 'MMC', 'MLM', 'MAS', 'MA', 'MAT', 'MKC', 'MCD', 'MCK', 'MDT', 'MRK', 'MET', 'MTD', 'MGM', 'KORS', 'MCHP', 'MU', 'MSFT', 'MAA', 'MHK', 'TAP', 'MDLZ', 'MON', 'MNST', 'MCO', 'MS', 'MOS', 'MSI', 'MSCI', 'MYL', 'NDAQ', 'NOV', 'NAVI', 'NKTR', 'NTAP', 'NFLX', 'NWL', 'NFX', 'NEM', 'NWSA', 'NWS', 'NEE', 'NLSN', 'NKE', 'NI', 'NBL', 'JWN', 'NSC', 'NTRS', 'NOC', 'NCLH', 'NRG', 'NUE', 'NVDA', 'ORLY', 'OXY', 'OMC', 'OKE', 'ORCL', 'PCAR', 'PKG', 'PH', 'PAYX', 'PYPL', 'PNR', 'PBCT', 'PEP', 'PKI', 'PRGO', 'PFE', 'PCG', 'PM', 'PSX', 'PNW', 'PXD', 'PNC', 'RL', 'PPG', 'PPL', 'PX', 'PFG', 'PG', 'PGR', 'PLD', 'PRU', 'PEG', 'PSA', 'PHM', 'PVH', 'QRVO', 'PWR', 'QCOM', 'DGX', 'RRC', 'RJF', 'RTN', 'O', 'RHT', 'REG', 'REGN', 'RF', 'RSG', 'RMD', 'RHI', 'ROK', 'COL', 'ROP', 'ROST', 'RCL', 'CRM', 'SBAC', 'SCG', 'SLB', 'STX', 'SEE', 'SRE', 'SHW', 'SPG', 'SWKS', 'SLG', 'SNA', 'SO', 'LUV', 'SPGI', 'SWK', 'SBUX', 'STT', 'SRCL', 'SYK', 'STI', 'SIVB', 'SYMC', 'SYF', 'SNPS', 'SYY', 'TROW', 'TTWO', 'TPR', 'TGT', 'TEL', 'FTI', 'TXN', 'TXT', 'TMO', 'TIF', 'TWX', 'TJX', 'TMK', 'TSS', 'TSCO', 'TDG', 'TRV', 'TRIP', 'FOXA', 'FOX', 'TSN', 'UDR', 'ULTA', 'USB', 'UAA', 'UA', 'UNP', 'UAL', 'UNH', 'UPS', 'URI', 'UTX', 'UHS', 'UNM', 'VFC', 'VLO', 'VAR', 'VTR', 'VRSN', 'VRSK', 'VZ', 'VRTX', 'VIAB', 'V', 'VNO', 'VMC', 'WMT', 'WBA', 'DIS', 'WM', 'WAT', 'WEC', 'WFC', 'WELL', 'WDC', 'WU', 'WRK', 'WY', 'WHR', 'WMB', 'WLTW', 'WYN', 'WYNN', 'XEL', 'XRX', 'XLNX', 'XL', 'XYL', 'YUM', 'ZBH', 'ZION', 'ZTS']
             else:
                 single_test["tickers"] = [tickers]
 
@@ -99,20 +92,33 @@ class Backtest:
         algo_list = algo.strip().split("/")
         algo_name = algo_list[len(algo_list) - 1]
 
-        algo_str = open(algo, "r").read()
+        with open(algo, "r") as f:
+            algo_str = f.read()
+
         return algo_str, algo_name
 
+class ExecuteTest:
+    def __init__(self, equity, test_config, context, stats, algo):
+        self.__test_config = test_config
+        self.__context = context
+        self.__stats = stats
+        self.__algo = algo
+        self.__equity = equity
+        self.__current_candle = None
+        self.__current_time = None
 
-    def execute(self, test):
+        # Test Data
+        self.__portfolio = 0 # Value of all stocks held
+        self.__wallet = equity
+        self.__orders = []
 
+        # Result Set 
+        self.__result_set = []
+
+    def execute(self):
         # TODO Add support for multiple attempts
-        for symb in gspc: 
-
-            buys = []
-            sells = []
-
-             # Reset for next symbol
-            self.__wallet = self.__equity
+        for symb in self.__test_config["tickers"]:
+            context = self.__context
 
             stats = self.__get_data_with_stats(symb)
 
@@ -120,29 +126,24 @@ class Backtest:
             for index, row in stats.iterrows():
                 self.__current_candle = row
                 self.__current_time = index
-                for stat in stats:
+                for stat in self.__stats:
                     f_stats[stat] = row[stat]
 
-                self.__algo["compute"](self.__context, f_stats, self.order)
+                self.__algo["compute"](context, f_stats, self.order)
 
             # Run Before Exit
-            self.__algo["before_exit"](self.__context, f_stats, self.order)
+            self.__algo["before_exit"](context, f_stats, self.order)
 
             # Save Result
-            result = {
-                "ticker": symb,
-                "buys": buys,
-                "sells": sells, 
-                "orders": self.__orders, 
-                "wallet": self.__wallet,
-                "portfolio": self.__equity,
-            }
+            r = Result(symb, self.__orders, self.__equity, self.__wallet)
 
-            self.__result_set.append(result)
+            self.__result_set.append(r)
+            r.printResult()
 
-            return(get_stats(result))
-
-
+            # Reset for next symbol
+            self.__wallet = self.__equity
+            self.__buys = []
+            self.__sells = []
         # End of all symbol tests    
         self.__algo["analyze"](self.__result_set)
 
@@ -158,14 +159,15 @@ class Backtest:
         return barset
 
     def __fetch_data(self, symb):
-        s = self.__config["date_range_start"]
-        e = self.__config["date_range_end"]
+        f  = Fetcher()
+        s = self.__test_config["date_range_start"]
+        e = self.__test_config["date_range_end"]
 
         # TODO Regardless of config it always selects randomly
         # TODO Add support for durations longer than a month
         rand_s, rand_e = self.__random_date(s, e, random.random())
         
-        return get_barset(ticker=symb, timespan='minute', start=rand_s, stop=rand_e)
+        return f.fetch_barset(ticker=symb, timespan='minute', start=rand_s, stop=rand_e)
 
     def __random_date(self, start, end, prop):
         format_str = "%Y-%m-%d"
@@ -179,6 +181,25 @@ class Backtest:
 
         return time.strftime(format_str, time.localtime(sptime)), time.strftime(format_str, time.localtime(eptime))
 
+
+    def save_result_set(self, output, file_name):
+        # TODO Rethink how we generate the json output
+        if not output.strip().endswith("/"):
+            output += ("/")
+        
+        if not os.path.exists(output):
+            os.makedirs(output)
+        
+        with open(output + file_name, 'w') as f:
+            json_str = "["
+            for res in self.__result_set:
+                json_str += res.json()
+                json_str += ","
+            
+            json_str = json_str[:-1]
+            json_str += "]"
+
+            f.write(json_str)
 
     def order(self, order_size=0, *, all_in=False, liquidate=False):
 
