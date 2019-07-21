@@ -6,7 +6,7 @@ setup(
     packages=['xylem'],
     entry_points={
         'console_scripts': [
-            'xylem=xylem.__main__:run'
+            'xylem=xylem.__main__:main'
         ]
     }
 )

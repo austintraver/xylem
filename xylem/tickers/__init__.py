@@ -1,19 +1,18 @@
 import pandas as pd
 from json import load
-from os import environ
-from os.path import abspath, join, dirname
+from os import environ, path
 from alpaca_trade_api import REST as alpaca
 
 # Constant: the S&P-500 (^GSPC) tickers
 # 505 tickers, comprising of the 500 largest US-traded companies
-gspc = load(open(join(dirname(abspath(__file__)),'sp500.json'), 'r'))
+gspc = load(open(path.join(path.dirname(path.abspath(__file__)),'gspc.json'), 'r'))
 
 # Constant: the NASDAQ-100 (^NDX) tickers
 # 103 tickers, comprising of 100 largest NASDAQ-traded companies
-ndx = load(open(join(dirname(abspath(__file__)), 'ndx.json'), 'r'))
+ndx = load(open(path.join(path.dirname(path.abspath(__file__)), 'ndx.json'), 'r'))
 
 # Constant: the Dow-Jones (^DJI) tickers
-dji = load(open(join(dirname(abspath(__file__)), 'dji.json'), 'r'))
+dji = load(open(path.join(path.dirname(path.abspath(__file__)), 'dji.json'), 'r'))
 
 def get_barset(ticker, timespan, start, stop):
 
