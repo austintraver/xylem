@@ -1,23 +1,24 @@
 import pandas as pd
-from yaml import load
-from os import environ, path
+from yaml import safe_load as load
+from os import environ
+from posixpath import join, dirname, abspath
 from alpaca_trade_api import REST as alpaca
 
 # Constant: the S&P-500 (^GSPC) tickers
 # 505 tickers, comprising of the 500 largest US-traded companies
-gspc = load(open(path.join(path.dirname(path.abspath(__file__)),'gspc.yml'), 'r'))
+SPX = load(open(join(dirname(abspath(__file__)), 'spx.yml'), 'r'))
 
 # Constant: the NASDAQ-100 (^NDX) tickers
 # 103 tickers, comprising of 100 largest NASDAQ-traded companies
-ndx = load(open(path.join(path.dirname(path.abspath(__file__)), 'ndx.yml'), 'r'))
+NDX = load(open(join(dirname(abspath(__file__)), 'ndx.yml'), 'r'))
 
 # Constant: the Dow-Jones (^DJI) tickers
-dji = load(open(path.join(path.dirname(path.abspath(__file__)), 'dji.yml'), 'r'))
+DJI = load(open(join(dirname(abspath(__file__)), 'dji.yml'), 'r'))
 
 def get_barset(ticker, timespan, start, stop):
 
-    api = alpaca(environ['APCA_API_KEY_ID'], environ['APCA_API_SECRET_KEY'])
-    barset = api.polygon.historic_agg_v2(timespan=timespan, multiplier='1', symbol=ticker, _from=start, to=stop).df
+    api = alpaca(environ['APCA_API_KEY_ID'], environ['APCA_API_SECRET_KEY'], api_version='v2')
+    barset = api.polygon.historic_agg(timespan=timespan, multiplier='1', symbol=ticker, _from=start, to=stop).df
     barset.index = pd.to_datetime(barset.index, unit='ms', origin="unix")
     return barset
 

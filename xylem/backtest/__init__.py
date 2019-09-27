@@ -1,1 +1,1 @@
-from .backtest import TestAlgorithm
+from .backtest import *

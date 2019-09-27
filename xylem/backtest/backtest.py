@@ -2,13 +2,12 @@ import os
 import random
 import time
 from six import exec_
-from ..Utils.Fetcher import Fetcher
-from ..Utils.Result import Result
+from ..utils import Fetcher, Result
 import yaml
 
 class TestAlgorithm:
     def __init__(self, algo):
-        
+
         self.__config = {}
         with open(algo, "r") as yml:
             try:
@@ -31,7 +30,7 @@ class TestAlgorithm:
 
 
     def __parse_tests(self):
-        
+
         tests = []
         for test in self.__config["tests"]:
             test_list = test.strip().split(" ")
@@ -39,12 +38,13 @@ class TestAlgorithm:
             single_test = {}
             # Evaluate tickers
             tickers = test_list[test_list.index("TEST") + 1]
-            
+
             if "," in tickers:
                 tickers = tickers.strip().split(",")
                 single_test["tickers"] = tickers
             elif tickers == "*":
-                single_test["tickers"] = ['MMM', 'ABT', 'ABBV', 'ACN', 'ATVI', 'AYI', 'ADBE', 'AMD', 'AAP', 'AES', 'AET', 'AMG', 'AFL', 'A', 'APD', 'AKAM', 'ALK', 'ALB', 'ARE', 'ALXN', 'ALGN', 'ALLE', 'AGN', 'ADS', 'LNT', 'ALL', 'GOOGL', 'GOOG', 'MO', 'AMZN', 'AEE', 'AAL', 'AEP', 'AXP', 'AIG', 'AMT', 'AWK', 'AMP', 'ABC', 'AME', 'AMGN', 'APH', 'APC', 'ADI', 'ANDV', 'ANSS', 'ANTM', 'AON', 'AOS', 'APA', 'AIV', 'AAPL', 'AMAT', 'APTV', 'ADM', 'ARNC', 'AJG', 'AIZ', 'T', 'ADSK', 'ADP', 'AZO', 'AVB', 'AVY', 'BHGE', 'BLL', 'BAC', 'BK', 'BAX', 'BBT', 'BDX', 'BRK.B', 'BBY', 'BIIB', 'BLK', 'HRB', 'BA', 'BKNG', 'BWA', 'BXP', 'BSX', 'BHF', 'BMY', 'AVGO', 'BF.B', 'CHRW', 'CA', 'COG', 'CDNS', 'CPB', 'COF', 'CAH', 'KMX', 'CCL', 'CAT', 'CBOE', 'CBRE', 'CBS', 'CELG', 'CNC', 'CNP', 'CTL', 'CERN', 'CF', 'SCHW', 'CHTR', 'CVX', 'CMG', 'CB', 'CHD', 'CI', 'XEC', 'CINF', 'CTAS', 'CSCO', 'C', 'CFG', 'CTXS', 'CLX', 'CME', 'CMS', 'KO', 'CTSH', 'CL', 'CMCSA', 'CMA', 'CAG', 'CXO', 'COP', 'ED', 'STZ', 'COO', 'GLW', 'COST', 'COTY', 'CCI', 'CSX', 'CMI', 'CVS', 'DHI', 'DHR', 'DRI', 'DVA', 'DE', 'DAL', 'XRAY', 'DVN', 'DLR', 'DFS', 'DISCA', 'DISCK', 'DISH', 'DG', 'DLTR', 'D', 'DOV', 'DWDP', 'DPS', 'DTE', 'DRE', 'DUK', 'DXC', 'ETFC', 'EMN', 'ETN', 'EBAY', 'ECL', 'EIX', 'EW', 'EA', 'EMR', 'ETR', 'EVHC', 'EOG', 'EQT', 'EFX', 'EQIX', 'EQR', 'ESS', 'EL', 'ES', 'RE', 'EXC', 'EXPE', 'EXPD', 'ESRX', 'EXR', 'XOM', 'FFIV', 'FB', 'FAST', 'FRT', 'FDX', 'FIS', 'FITB', 'FE', 'FISV', 'FLIR', 'FLS', 'FLR', 'FMC', 'FL', 'F', 'FTV', 'FBHS', 'BEN', 'FCX', 'GPS', 'GRMN', 'IT', 'GD', 'GE', 'GGP', 'GIS', 'GM', 'GPC', 'GILD', 'GPN', 'GS', 'GT', 'GWW', 'HAL', 'HBI', 'HOG', 'HRS', 'HIG', 'HAS', 'HCA', 'HCP', 'HP', 'HSIC', 'HSY', 'HES', 'HPE', 'HLT', 'HOLX', 'HD', 'HON', 'HRL', 'HST', 'HPQ', 'HUM', 'HBAN', 'HII', 'IDXX', 'INFO', 'ITW', 'ILMN', 'IR', 'INTC', 'ICE', 'IBM', 'INCY', 'IP', 'IPG', 'IFF', 'INTU', 'ISRG', 'IVZ', 'IPGP', 'IQV', 'IRM', 'JEC', 'JBHT', 'SJM', 'JNJ', 'JCI', 'JPM', 'JNPR', 'KSU', 'K', 'KEY', 'KMB', 'KIM', 'KMI', 'KLAC', 'KSS', 'KHC', 'KR', 'LB', 'LLL', 'LH', 'LRCX', 'LEG', 'LEN', 'LUK', 'LLY', 'LNC', 'LKQ', 'LMT', 'L', 'LOW', 'LYB', 'MTB', 'MAC', 'M', 'MRO', 'MPC', 'MAR', 'MMC', 'MLM', 'MAS', 'MA', 'MAT', 'MKC', 'MCD', 'MCK', 'MDT', 'MRK', 'MET', 'MTD', 'MGM', 'KORS', 'MCHP', 'MU', 'MSFT', 'MAA', 'MHK', 'TAP', 'MDLZ', 'MON', 'MNST', 'MCO', 'MS', 'MOS', 'MSI', 'MSCI', 'MYL', 'NDAQ', 'NOV', 'NAVI', 'NKTR', 'NTAP', 'NFLX', 'NWL', 'NFX', 'NEM', 'NWSA', 'NWS', 'NEE', 'NLSN', 'NKE', 'NI', 'NBL', 'JWN', 'NSC', 'NTRS', 'NOC', 'NCLH', 'NRG', 'NUE', 'NVDA', 'ORLY', 'OXY', 'OMC', 'OKE', 'ORCL', 'PCAR', 'PKG', 'PH', 'PAYX', 'PYPL', 'PNR', 'PBCT', 'PEP', 'PKI', 'PRGO', 'PFE', 'PCG', 'PM', 'PSX', 'PNW', 'PXD', 'PNC', 'RL', 'PPG', 'PPL', 'PX', 'PFG', 'PG', 'PGR', 'PLD', 'PRU', 'PEG', 'PSA', 'PHM', 'PVH', 'QRVO', 'PWR', 'QCOM', 'DGX', 'RRC', 'RJF', 'RTN', 'O', 'RHT', 'REG', 'REGN', 'RF', 'RSG', 'RMD', 'RHI', 'ROK', 'COL', 'ROP', 'ROST', 'RCL', 'CRM', 'SBAC', 'SCG', 'SLB', 'STX', 'SEE', 'SRE', 'SHW', 'SPG', 'SWKS', 'SLG', 'SNA', 'SO', 'LUV', 'SPGI', 'SWK', 'SBUX', 'STT', 'SRCL', 'SYK', 'STI', 'SIVB', 'SYMC', 'SYF', 'SNPS', 'SYY', 'TROW', 'TTWO', 'TPR', 'TGT', 'TEL', 'FTI', 'TXN', 'TXT', 'TMO', 'TIF', 'TWX', 'TJX', 'TMK', 'TSS', 'TSCO', 'TDG', 'TRV', 'TRIP', 'FOXA', 'FOX', 'TSN', 'UDR', 'ULTA', 'USB', 'UAA', 'UA', 'UNP', 'UAL', 'UNH', 'UPS', 'URI', 'UTX', 'UHS', 'UNM', 'VFC', 'VLO', 'VAR', 'VTR', 'VRSN', 'VRSK', 'VZ', 'VRTX', 'VIAB', 'V', 'VNO', 'VMC', 'WMT', 'WBA', 'DIS', 'WM', 'WAT', 'WEC', 'WFC', 'WELL', 'WDC', 'WU', 'WRK', 'WY', 'WHR', 'WMB', 'WLTW', 'WYN', 'WYNN', 'XEL', 'XRX', 'XLNX', 'XL', 'XYL', 'YUM', 'ZBH', 'ZION', 'ZTS']
+                from ..tickers import SPX
+                single_test["tickers"] = SPX
             else:
                 single_test["tickers"] = [tickers]
 
@@ -53,7 +53,7 @@ class TestAlgorithm:
                 single_test["random_selection"] = True
             else:
                 single_test["random_selection"] = False
-            
+
             # Find date range
             single_test["date_range_start"] = test_list[test_list.index("FROM") + 1]
             single_test["date_range_end"] = test_list[test_list.index("TO") + 1]
@@ -78,7 +78,7 @@ class TestAlgorithm:
         exec_(code, namespace)
 
         def nofunc(*args, **kwargs): pass
-        
+
         return {
             "compute": namespace.get("compute", nofunc),
             "before_exit": namespace.get("before_exit", nofunc),
@@ -87,7 +87,7 @@ class TestAlgorithm:
 
     def __read_algo(self, algo):
         algo_str = ""
-        
+
         # Support for windows paths??
         algo_list = algo.strip().split("/")
         algo_name = algo_list[len(algo_list) - 1]
@@ -106,28 +106,36 @@ class ExecuteTest:
         self.__equity = equity
         self.__current_candle = None
         self.__current_time = None
+        self.__starting_random_time = None
+        self.__stopping_random_time = None
 
         # Test Data
         self.__portfolio = 0 # Value of all stocks held
         self.__wallet = equity
         self.__orders = []
 
-        # Result Set 
+        # Result Set
         self.__result_set = []
 
     def execute(self):
         # TODO Add support for multiple attempts
+        barsets = []
         for symb in self.__test_config["tickers"]:
             context = self.__context
 
+            # NOTE look at how we're generating statistics
             stats = self.__get_data_with_stats(symb)
+            barsets.append(stats)
 
             f_stats = {}
             for index, row in stats.iterrows():
                 self.__current_candle = row
                 self.__current_time = index
                 for stat in self.__stats:
-                    f_stats[stat] = row[stat]
+                    if stat != "CANDLE":
+                        f_stats[stat] = row[stat]
+                    else:
+                        f_stats["CANDLE"] = row
 
                 self.__algo["compute"](context, f_stats, self.order)
 
@@ -135,7 +143,7 @@ class ExecuteTest:
             self.__algo["before_exit"](context, f_stats, self.order)
 
             # Save Result
-            r = Result(symb, self.__orders, self.__equity, self.__wallet)
+            r = Result(symb, self.__orders, self.__equity, self.__wallet, self.__starting_random_time, self.__stopping_random_time)
 
             self.__result_set.append(r)
             r.printResult()
@@ -144,21 +152,21 @@ class ExecuteTest:
             self.__wallet = self.__equity
             self.__buys = []
             self.__sells = []
-        # End of all symbol tests    
-        self.__algo["analyze"](self.__result_set)
+        # End of all symbol tests
+        self.__algo["analyze"](self.__result_set, barsets)
 
     def __get_data_with_stats(self, symb):
         barset = self.__fetch_data(symb)
 
         if "EMA12" in self.__stats:
             barset["EMA12"] = barset["o"].ewm(span=12).mean()
-        
+
         if "EMA26" in self.__stats:
             barset["EMA26"] = barset["o"].ewm(span=26).mean()
-        
+
         return barset
 
-    def __fetch_data(self, symb):
+    def __fetch_data(self, symbol):
         f  = Fetcher()
         s = self.__test_config["date_range_start"]
         e = self.__test_config["date_range_end"]
@@ -166,8 +174,11 @@ class ExecuteTest:
         # TODO Regardless of config it always selects randomly
         # TODO Add support for durations longer than a month
         rand_s, rand_e = self.__random_date(s, e, random.random())
-        
-        return f.fetch_barset(ticker=symb, timespan='minute', start=rand_s, stop=rand_e)
+
+        self.__starting_random_time = rand_s
+        self.__stopping_random_time = rand_e
+
+        return f.fetch_barset(symbol=symbol, timespan='minute', start=rand_s, stop=rand_e)
 
     def __random_date(self, start, end, prop):
         format_str = "%Y-%m-%d"
@@ -186,16 +197,16 @@ class ExecuteTest:
         # TODO Rethink how we generate the json output
         if not output.strip().endswith("/"):
             output += ("/")
-        
+
         if not os.path.exists(output):
             os.makedirs(output)
-        
+
         with open(output + file_name, 'w') as f:
             json_str = "["
             for res in self.__result_set:
                 json_str += res.json()
                 json_str += ","
-            
+
             json_str = json_str[:-1]
             json_str += "]"
 
@@ -210,29 +221,29 @@ class ExecuteTest:
             if order_size in [-1, 1]:
                 # Calculate max # of stocks we can long/short @ current price...
                 order_size *= self.__wallet // current_price
-                
+
             else:
                 raise ValueError("Order is all_in but != +/- 1")
-            
+
         elif liquidate:
             # Order size should be the opposite of our current position
             order_size = self.__portfolio * -1
-        
+
         # Catch an invalid set of arguments passed to order()
         elif order_size == 0:
             raise ValueError("Order placed for 0 stocks")
-            
+
         # Subtract the cost of this order from the wallet
         self.__wallet -= (order_size * current_price)
-        
+
         # Adjust balance +/- amount of stocks owned
         self.__portfolio += order_size
-        
+
         # Add to the list of total orders
         order = {
             "time": str(self.__current_time),
             "amount": order_size,
             "price": current_price
         }
-        
+
         self.__orders.append(order)
