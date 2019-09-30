@@ -1,34 +1,30 @@
-"""
-Xylem. A backtesting platform...
-
-Usage:
-  xylem run -a ALGORITHM
-  xylem (-h | --help)
-  xylem --version
-
-Options:
-  -h --help                     Show this screen.
-  -v --version                  Show version.
-  -a --algorithm ALGORITHM      Path to algorithm configuration file.
-
-"""
-from docopt import docopt
+from argparse import ArgumentParser
 from .backtest import TestAlgorithm
+
 
 def run(args):
     """ Main routine. """
-    TestAlgorithm(args['--algorithm'])
+
 
 def main():
-    args = docopt(__doc__, version='Xylem Version 0.0.1')
+    parser = ArgumentParser(
+        prog="\x1b[32;1mxylem\x1b[0m",
+        usage="%(prog)s -a \x1b[1;34m<algo.yml>\x1b[0m",
+        description="%(prog)s: a backtesting platform"
+    )
 
-    modes = {
-        'run': run
-    }
+    parser.add_argument(
+        "-a",
+        "--algorithm",
+        dest="algorithm",
+        metavar="\x1b[34;1m<algo.yml>\x1b[0m",
+        required=True,
+        help="path to the algorithm configuration file"
+    )
 
-    func = [modes[mode] for mode in modes if args[mode]][0]
+    args = parser.parse_args()
 
-    func(args)
+    TestAlgorithm(args.algorithm)
 
 if __name__ == "__main__":
     main()
