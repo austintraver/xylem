@@ -76,6 +76,14 @@ def sharpe_ratio(symbol, stop):
         start=start,
         stop=stop)["c"]
 
+    re = fetch_barset(
+        symbol=symbol,
+        timespan='month',
+        start=start,
+        stop=stop)["c"]
+
+    re = re.pct_change()[1:]
+
 
 # R𝑚: the market rate of return
 def RM(start, stop):
