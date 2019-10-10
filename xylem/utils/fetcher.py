@@ -16,8 +16,8 @@ api = alpaca_trade_api.REST(
 
 
 def fetch_barset(symbol, timespan, start, stop=None, limit=None):
-    start = start.format('YYYY-M-D')
-    stop = stop.format('YYYY-M-D')
+    start = start.format('YYYY-MM-DD')
+    stop = stop.format('YYYY-MM-DD')
 
     barset = api.polygon.historic_agg_v2(
         symbol=symbol,
@@ -31,7 +31,7 @@ def fetch_barset(symbol, timespan, start, stop=None, limit=None):
 
 
 def fetch_price(symbol, date):
-    date = date.format('YYYY-M-D')
+    date = date.format('YYYY-MM-DD')
     barset = api.polygon.historic_trades(symbol, date, limit=1).df
     price = barset["price"][0]
     # price = barset[1]
@@ -47,5 +47,6 @@ def last_price(symbol, date):
         date -= duration(days=1)
         print("Error: New date is ", date)
         return last_price(symbol, date)
+
 
 __all__ = ["fetch_barset", "fetch_price", "last_price"]

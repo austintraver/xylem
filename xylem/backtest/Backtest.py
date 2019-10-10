@@ -226,3 +226,7 @@ class ExecuteTest:
         }
 
         self.orders.append(order)
+
+
+if __name__ == '__main__':
+    TestAlgorithm('/Users/austin/st/macd/macd.py')
