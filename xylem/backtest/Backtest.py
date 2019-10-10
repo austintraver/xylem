@@ -1,120 +1,43 @@
-import os
-import random
-import time
-from six import exec_
+from os import makedirs
+from json import *
 from ..utils.fetcher import *
-import yaml
-import json
+from posixpath import *
+from importlib.util import *
 
 
-class TestAlgorithm:
-    def __init__(self, algo):
+class Backtest:
+    def __init__(self, *,
+    config, context, stats, equity, algorithm, output, filename):
 
-        self.config = dict()
-        with open(algo, "r") as yml:
-            try:
-                self.config = yaml.safe_load(yml)
-            except yaml.YAMLError as error:
-                print(error)
-                exit(1)
+        # Load algorithm to backtest into the namespace "algo"
+        spec = spec_from_file_location("algorithm", algorithm)
+        self.algorithm = module_from_spec(spec)
+        spec.loader.exec_module(self.algorithm)
 
-        algo = self.load_algorithm()
-        tests = self.parse_tests()
-
-        for i in range(0, len(tests)):
-            t = ExecuteTest(
-                self.config["equity"],
-                tests[i],
-                self.config["context"],
-                self.config["statistics"],
-                algo)
-            t.execute()
-            t.save_result_set(
-                self.config["output"],
-                f"test_{str(i+1)}.json")
-
-    def parse_tests(self):
-
-        tests = list()
-        for test in self.config["tests"]:
-            test_list = test.strip().split(" ")
-
-            single_test = dict()
-            # Evaluate tickers
-            symbols = test_list[test_list.index("TEST") + 1]
-
-            if "," in symbols:
-                symbols = symbols.strip().split(",")
-                single_test["symbols"] = symbols
-            elif symbols == "*":
-                from ..symbols import SPX
-                single_test["symbols"] = SPX
-            else:
-                single_test["symbols"] = [symbols]
-
-            # Find date range
-            single_test["date_range_start"] = test_list[test_list.index(
-                "FROM") + 1]
-            single_test["date_range_end"] = test_list[test_list.index(
-                "TO") + 1]
-
-            tests.append(single_test)
-
-        return tests
-
-    def load_algorithm(self):
-        algo_string, algo_name = self.read_algo(self.config["algorithm"])
-
-        code = compile(algo_string, algo_name, 'exec')
-
-        namespace = dict()
-        exec_(code, namespace)
-
-        def nofunc(*args, **kwargs):
-            pass
-
-        return {
-            "compute": namespace.get("compute", nofunc),
-            "before_exit": namespace.get("before_exit", nofunc),
-            "analyze": namespace.get("analyze", nofunc)
-        }
-
-    def read_algo(self, algo):
-        algo_str = ""
-
-        # Support for windows paths??
-        algo_list = algo.strip().split("/")
-        algo_name = algo_list[len(algo_list) - 1]
-
-        with open(algo, "r") as f:
-            algo_str = f.read()
-
-        return algo_str, algo_name
-
-
-class ExecuteTest:
-    def __init__(self, equity, test_config, context, stats, algo):
-        self.test_config = test_config
+        self.config = config
         self.context = context
         self.stats = stats
-        self.algo = algo
         self.equity = equity
+
         self.current_candle = None
         self.current_time = None
-        self.start_time = None
-        self.stop_time = None
+        self.start = None
+        self.stop = None
 
-        # Test Data
         self.portfolio = 0  # Value of all stocks held
-        self.wallet = equity
+        self.wallet = self.equity
         self.orders = list()
+        self.results = list()
 
-        # Result Set
-        self.result_set = list()
+        self.execute()
+
+        self.save_results(
+            directory=output,
+            filename=filename)
 
     def execute(self):
         barsets = list()
-        for symb in self.test_config["symbols"]:
+        for symb in self.config["symbols"]:
             context = self.context
 
             # NOTE look at how we're generating statistics
@@ -131,27 +54,26 @@ class ExecuteTest:
                     else:
                         f_stats["CANDLE"] = row
 
-                self.algo["compute"](context, f_stats, self.order)
+                self.algorithm.compute(context, f_stats, self.order)
 
             # Run Before Exit
-            self.algo["before_exit"](context, f_stats, self.order)
+            self.algorithm.before_exit(context, f_stats, self.order)
 
             result = dict({
                 "symbol": symb,
                 "orders": self.orders,
                 "starting_balance": self.equity,
                 "ending_balance": self.wallet,
-                "start_time": self.start_time,
-                "stop_time": self.stop_time,
-                "data": barsets
+                "start": self.start,
+                "stop": self.stop,
             })
 
-            self.result_set.append(result)
+            self.results.append(result)
             print("=======================================")
             print(f"Summary Statistics ({symb})")
             print("=======================================")
-            print(f"Start Time: {self.start_time}")
-            print(f"Stop Time: {self.stop_time}")
+            print(f"Start Time: {self.start}")
+            print(f"Stop Time: {self.stop}")
             print(f"Starting Balance: ${self.equity:.2f}")
             print(f"Ending Balance: ${self.wallet:.2f}")
             print("=======================================\n")
@@ -161,10 +83,13 @@ class ExecuteTest:
             self.buys = list()
             self.sells = list()
         # End of all symbol tests
-        self.algo["analyze"](self.result_set, barsets)
+        self.algorithm.analyze(self.results, barsets)
 
-    def get_data_with_stats(self, symb):
-        barset = self.fetch_data(symb)
+    def get_data_with_stats(self, symbol):
+        barset = self.fetch_data(
+            symbol=symbol,
+            start=self.config["start"],
+            stop=self.config["stop"])
 
         if "EMA12" in self.stats:
             barset["EMA12"] = barset["o"].ewm(span=12).mean()
@@ -174,12 +99,10 @@ class ExecuteTest:
 
         return barset
 
-    def fetch_data(self, symbol):
-        start = self.test_config["date_range_start"]
-        stop = self.test_config["date_range_end"]
+    def fetch_data(self, *, symbol, start, stop):
 
-        self.start_time = start
-        self.stop_time = stop
+        self.start = start
+        self.stop = stop
 
         return fetch_barset(
             symbol=symbol,
@@ -187,18 +110,14 @@ class ExecuteTest:
             start=start,
             stop=stop)
 
-    def save_result_set(self, output, file_name):
+    def save_results(self, *, directory, filename):
 
-        if not os.path.exists(output):
-            os.makedirs(output)
+        if not exists(directory):
+            makedirs(directory)
 
-        ofile = open(os.path.join(output, file_name), 'w')
-        # yaml.dump(self.result_set, ofile, default_flow_style=false)
-        for result in self.result_set:
-            for value in result:
-                value["data"] = value["data"].to_json()
+        ofile = open(join(directory, filename), 'w')
 
-        json.dump(self.result_set, ofile)
+        dump(self.results, ofile)
 
     def order(self, order_size=0, *, liquidate=False):
 
@@ -226,7 +145,3 @@ class ExecuteTest:
         }
 
         self.orders.append(order)
-
-
-if __name__ == '__main__':
-    TestAlgorithm('/Users/austin/st/macd/macd.py')

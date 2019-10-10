@@ -1,1 +1,2 @@
-from .backtest import *
+from .Backtest import *
+from .Algorithm import *

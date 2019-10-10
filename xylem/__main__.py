@@ -1,9 +1,9 @@
 from argparse import ArgumentParser
-from .backtest import TestAlgorithm
+from .backtest import *
 
 
-def run(args):
-    """ Main routine. """
+# def run(args):
+# """ Main routine. """
 
 
 def main():
@@ -14,17 +14,49 @@ def main():
     )
 
     parser.add_argument(
+        "-c",
+        "--config",
+        dest="config",
+        metavar="\x1b[34;1m<config.yml>\x1b[0m",
+        required=True,
+        help="path to the config file"
+    )
+
+    parser.add_argument(
         "-a",
         "--algorithm",
         dest="algorithm",
-        metavar="\x1b[34;1m<algo.yml>\x1b[0m",
+        metavar="\x1b[34;1m<algorithm.py>\x1b[0m",
         required=True,
-        help="path to the algorithm configuration file"
+        help="path to the algorithm file"
     )
+
+    parser.add_argument(
+        "-e",
+        "--equity",
+        dest="equity",
+        metavar="\x1b[34;1m<9001>\x1b[0m",
+        type=int,
+        required=False,
+        help="starting amount of equity in the portfolio"
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output",
+        dest="output",
+        metavar="\xc1b[34;1m</path/to/output/dir>\x1b[0m",
+        required=False,
+        help="path to directory to output xylem results")
 
     args = parser.parse_args()
 
-    TestAlgorithm(args.algorithm)
+    Algorithm(
+        config=args.config,
+        algorithm=args.algorithm,
+        equity=args.equity,
+        output=args.output)
+
 
 if __name__ == "__main__":
     main()
