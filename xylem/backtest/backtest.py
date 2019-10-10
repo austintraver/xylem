@@ -16,6 +16,7 @@ class TestAlgorithm:
                 self.config = yaml.safe_load(yml)
             except yaml.YAMLError as error:
                 print(error)
+                exit(1)
 
         algo = self.load_algorithm()
         tests = self.parse_tests()
@@ -141,7 +142,8 @@ class ExecuteTest:
                 "starting_balance": self.equity,
                 "ending_balance": self.wallet,
                 "start_time": self.start_time,
-                "stop_time": self.stop_time
+                "stop_time": self.stop_time,
+                "data": barsets
             })
 
             self.result_set.append(result)
@@ -192,6 +194,10 @@ class ExecuteTest:
 
         ofile = open(os.path.join(output, file_name), 'w')
         # yaml.dump(self.result_set, ofile, default_flow_style=false)
+        for result in self.result_set:
+            for value in result:
+                value["data"] = value["data"].to_json()
+
         json.dump(self.result_set, ofile)
 
     def order(self, order_size=0, *, liquidate=False):
